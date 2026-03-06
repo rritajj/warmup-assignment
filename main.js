@@ -7,7 +7,7 @@ const DAYS = {
     "thursday": 4, "friday": 5, "saturday": 6
 };
 
-// For delivery
+// For delivery1
 const DELIVERY_CONFIG = {
     HOURS: {
         START: 8 * 3600,
