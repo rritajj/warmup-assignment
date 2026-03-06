@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-// For days use
+// For days use1
 const DAY_SECONDS = 24 * 3600;
 const DAYS = {
     "sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3,
