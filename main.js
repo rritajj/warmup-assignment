@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-//===================== Helper Functions =====================
+// ===================== Helper Functions =====================
 function toSeconds(timeStr) {
     let [time, period] = timeStr.split(" ");
     let [h, m, s] = time.split(":").map(Number);
