@@ -2,7 +2,7 @@ const fs = require("fs");
 
 // ============================================================
 // Function 1: getShiftDuration(startTime, endTime)
-// startTime: (typeof string) formatted as hh:mm:ss am or hh:mm:ss pm
+// startTime: (typeof string) formatted as hh:mm:swtude3m or hh:mm:ss pm
 // endTime: (typeof string) formatted as hh:mm:ss am or hh:mm:ss pm
 // Returns: string formatted as h:mm:ss
 // ============================================================
