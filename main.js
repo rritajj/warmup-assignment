@@ -148,3 +148,111 @@ function metQuota(date, activeTime) {
     return parseToSeconds(activeTime) >= (isEid ? DELIVERY_CONFIG.DAILY_MINIMUM.EID : DELIVERY_CONFIG.DAILY_MINIMUM.NORMAL);
 }
 
+// ============================================================
+// Function 5: addShiftRecord(textFile, shiftObj)
+// textFile: (typeof string) path to shifts text file
+// shiftObj: (typeof object) has driverID, driverName, date, startTime, endTime
+// Returns: object with 10 properties or empty object {}
+// ============================================================
+function addShiftRecord(textFile, shiftObj) {
+    if (!fs.existsSync(textFile))
+        fs.writeFileSync(textFile, "");
+
+    const records = readLines(textFile).map(line => {
+        const parts = line.split(",");
+        return {
+            driverID: parts[0],
+            driverName: parts[1],
+            date: parts[2],
+            startTime: parts[3],
+            endTime: parts[4],
+            shiftDuration: parts[5],
+            idleTime: parts[6],
+            activeTime: parts[7],
+            metQuota: Boolean(parts[8]),
+            hasBonus: Boolean(parts[9])
+        };
+    });
+
+    const duplicate = records.some(r =>
+        r.driverID === shiftObj.driverID &&
+        r.date === shiftObj.date
+    );
+
+    if (duplicate) return {};
+
+    const shiftDuration = getShiftDuration(shiftObj.startTime, shiftObj.endTime);
+    const idleTime = getIdleTime(shiftObj.startTime, shiftObj.endTime);
+    const activeTime = getActiveTime(shiftDuration, idleTime);
+    const metQuotaFlag = metQuota(shiftObj.date, activeTime);
+
+    const newRecord = {
+        driverID: shiftObj.driverID,
+        driverName: shiftObj.driverName,
+        date: shiftObj.date,
+        startTime: shiftObj.startTime,
+        endTime: shiftObj.endTime,
+        shiftDuration,
+        idleTime,
+        activeTime,
+        metQuota: metQuotaFlag,
+        hasBonus: false
+    };
+
+    // Find the index after the last record of the same driverID
+    let insertIndex = -1;
+    for (let i = 0; i < records.length; i++) {
+        if (records[i].driverID === shiftObj.driverID)
+            insertIndex = i;
+    }
+
+    if (insertIndex === -1)
+        records.push(newRecord);
+    else
+        records.splice(insertIndex + 1, 0, newRecord);
+
+    const fileContent = records.map(r =>
+        `${r.driverID},${r.driverName},${r.date},${r.startTime},${r.endTime},${r.shiftDuration},${r.idleTime},${r.activeTime},${r.metQuota},${r.hasBonus}`
+    ).join("\n");
+
+    fs.writeFileSync(textFile, fileContent);
+
+    return newRecord;
+}
+
+// ============================================================
+// Function 6: setBonus(textFile, driverID, date, newValue)
+// textFile: (typeof string) path to shifts text file
+// driverID: (typeof string)
+// date: (typeof string) formatted as yyyy-mm-dd
+// newValue: (typeof boolean)
+// Returns: nothing (void)
+// ============================================================
+function setBonus(textFile, driverID, date, newValue) {
+    if (!fs.existsSync(textFile)) return;
+
+    const lines = readLines(textFile);
+
+    let updated = false;
+
+    const updatedLines = lines.map(line => {
+        const parts = line.split(",");
+
+        if (parts.length < 10) return line;
+
+        const recordDriverID = parts[0];
+        const recordDate = parts[2];
+
+        if (recordDriverID === driverID && recordDate === date) {
+            parts[9] = newValue.toString();
+            updated = true;
+        }
+
+        return parts.join(",");
+    });
+
+    if (updated)
+        fs.writeFileSync(textFile, updatedLines.join("\n"));
+}
+
+
