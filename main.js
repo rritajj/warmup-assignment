@@ -221,87 +221,62 @@ function addShiftRecord(textFile, shiftObj) {
     return newRecord;
 }
 
-// ============================================================
-// Function 6: setBonus(textFile, driverID, date, newValue)
-// textFile: (typeof string) path to shifts text file
-// driverID: (typeof string)
-// date: (typeof string) formatted as yyyy-mm-dd
-// newValue: (typeof boolean)
-// Returns: nothing (void)
-// ============================================================
-
-
+// ===================== Function 6 =====================
+// setBonus(textFile, driverID, date, newValue)
+// Updates exactly the row matching driverID + date
 function setBonus(textFile, driverID, date, newValue) {
-    // Read file
-    let lines = fs.readFileSync(textFile, "utf8").trim().split("\n");
-
-    // Header must stay unchanged
-    const header = lines[0];
-    let updatedLines = [header];
-
-    // Process rows one by one
-    for (let i = 1; i < lines.length; i++) {
-        let line = lines[i].trim();
-        if (line === "") continue;
-
-        let parts = line.split(",");
-
-        // Extract fields in the same order as file:
-        // DriverID,DriverName,Date,StartTime,EndTime,ShiftDuration,IdleTime,ActiveTime,MetQuota,HasBonus
-        let rowDriverID = parts[0];
-        let rowDate = parts[2];
-
-        // Convert the last field "HasBonus" exactly
-        if (rowDriverID === driverID && rowDate === date) {
-            parts[9] = newValue.toString();  // true / false
-        }
-
-        updatedLines.push(parts.join(",")); // reassemble the row
-    }
-
-    // Write back to file
-    fs.writeFileSync(textFile, updatedLines.join("\n"), "utf8");
-}
-
-
-
-// ============================================================
-// Function 7: countBonusPerMonth(textFile, driverID, month)
-// textFile: (typeof string) path to shifts text file
-// driverID: (typeof string)
-// month: (typeof string) formatted as mm or m
-// Returns: number (-1 if driverID not found)
-// ============================================================
-function countBonusPerMonth(textFile, driverID, month) {
-    if (!fs.existsSync(textFile)) return -1;
+    if (!fs.existsSync(textFile)) return;
 
     const lines = readLines(textFile);
+    if (lines.length === 0) return;
 
-    let driverExists = false;
-    let bonusCount = 0;
+    const header = lines[0];
+    let body = lines.slice(1);
+    let updatedBody = [];
 
-    const targetMonth = Number(month);
+    for (let i = 0; i < body.length; i++) {
+        let parts = body[i].split(",");
+        if (parts.length < 10) {
+            updatedBody.push(body[i]);
+            continue;
+        }
 
-    for (const line of lines) {
-        const parts = line.trim().split(",");
-
-        if (parts.length < 10) continue;
-
-        const recordDriverID = parts[0];
-        const recordDate = parts[2];
-        const hasBonus = parts[9] === "true";
-
-        if (recordDriverID !== driverID) continue;
-
-        driverExists = true;
-
-        const recordMonth = new Date(recordDate).getMonth() + 1;
-
-        if (recordMonth === targetMonth && hasBonus)
-            bonusCount++;
+        if (parts[0] === driverID && parts[2] === date) {
+            parts[9] = String(!!newValue);
+        }
+        updatedBody.push(parts.join(","));
     }
 
-    return driverExists ? bonusCount : -1;
+    fs.writeFileSync(textFile, [header, ...updatedBody].join("\n"), "utf8");
+}
+
+// ===================== Function 7 =====================
+// countBonusPerMonth(textFile, driverID, month) → number or -1
+function countBonusPerMonth(textFile, driverID, month) {
+    if (!fs.existsSync(textFile)) return -1;
+    const lines = readLines(textFile);
+    if (lines.length === 0) return -1;
+
+    const body = lines.slice(1);
+    const monthStr = String(month).padStart(2, "0");
+
+    let count = 0;
+    let foundDriver = false;
+
+    for (const line of body) {
+        const parts = line.split(",");
+        if (parts.length < 10) continue;
+        const id = parts[0];
+        const date = parts[2];
+        const bonusStr = parts[9].trim().toLowerCase();
+
+        if (id === driverID) {
+            foundDriver = true;
+            const m = date.split("-")[1];
+            if (m === monthStr && bonusStr === "true") count++;
+        }
+    }
+    return foundDriver ? count : -1;
 }
 
 // ============================================================
