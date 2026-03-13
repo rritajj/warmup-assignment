@@ -229,32 +229,40 @@ function addShiftRecord(textFile, shiftObj) {
 // newValue: (typeof boolean)
 // Returns: nothing (void)
 // ============================================================
+
+
 function setBonus(textFile, driverID, date, newValue) {
-    if (!fs.existsSync(textFile)) return;
+    // Read file
+    let lines = fs.readFileSync(textFile, "utf8").trim().split("\n");
 
-    const lines = readLines(textFile);
+    // Header must stay unchanged
+    const header = lines[0];
+    let updatedLines = [header];
 
-    let updated = false;
+    // Process rows one by one
+    for (let i = 1; i < lines.length; i++) {
+        let line = lines[i].trim();
+        if (line === "") continue;
 
-    const updatedLines = lines.map(line => {
-        const parts = line.split(",");
+        let parts = line.split(",");
 
-        if (parts.length < 10) return line;
+        // Extract fields in the same order as file:
+        // DriverID,DriverName,Date,StartTime,EndTime,ShiftDuration,IdleTime,ActiveTime,MetQuota,HasBonus
+        let rowDriverID = parts[0];
+        let rowDate = parts[2];
 
-        const recordDriverID = parts[0];
-        const recordDate = parts[2];
-
-        if (recordDriverID === driverID && recordDate === date) {
-            parts[9] = newValue.toString();
-            updated = true;
+        // Convert the last field "HasBonus" exactly
+        if (rowDriverID === driverID && rowDate === date) {
+            parts[9] = newValue.toString();  // true / false
         }
 
-        return parts.join(",");
-    });
+        updatedLines.push(parts.join(",")); // reassemble the row
+    }
 
-    if (updated)
-        fs.writeFileSync(textFile, updatedLines.join("\n"));
+    // Write back to file
+    fs.writeFileSync(textFile, updatedLines.join("\n"), "utf8");
 }
+
 
 
 // ============================================================
